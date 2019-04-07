@@ -51,7 +51,7 @@ def build_parser():
                             help='Certificate identity.')
     parser_req.add_argument('-n', '--principals', nargs='+', default=[],
                             help='List of principals.')
-    parser_req.add_argument('-O', '--option', help='Certificate option.')
+    parser_req.add_argument('-O', '--option', help='Certificate option.', action='append')
     parser_req.add_argument('-V', '--validity', help='Validity interval.')
     parser_req.add_argument('-z', '--serial', type=int, default=0,
                             help='Serial number.')

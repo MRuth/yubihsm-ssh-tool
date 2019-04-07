@@ -8,6 +8,13 @@ from cryptography.utils import int_to_bytes
 CERT_TYPE = 1  # 1 = user, 2 = host
 CA_KEY_TYPE = b'ssh-rsa'
 
+DEFAULT_EXTENSIONS = {
+    'permit-X11-forwarding' : None,
+    'permit-agent-forwarding' : None,
+    'permit-port-forwarding' : None,
+    'permit-pty' : None,
+    'permit-user-rc' : None
+}
 
 
 def create_request(ca_public_key, user_public_key_type, user_public_key, key_id,
@@ -47,11 +54,55 @@ def create_request(ca_public_key, user_public_key_type, user_public_key, key_id,
 
     req += struct.pack('!Q', not_before)
 
-    CRITICAL_OPTIONS = b''  # TODO(adma): FIXME
-    req += CRITICAL_OPTIONS
-    req += struct.pack('!I', len(CRITICAL_OPTIONS))
+    CRITICAL_OPTIONS_DICT = {}
+    EXTENSIONS_DICT = DEFAULT_EXTENSIONS.copy()
 
-    EXTENSIONS = b'\x00\x00\x00\x15\x70\x65\x72\x6d\x69\x74\x2d\x58\x31\x31\x2d\x66\x6f\x72\x77\x61\x72\x64\x69\x6e\x67\x00\x00\x00\x00\x00\x00\x00\x17\x70\x65\x72\x6d\x69\x74\x2d\x61\x67\x65\x6e\x74\x2d\x66\x6f\x72\x77\x61\x72\x64\x69\x6e\x67\x00\x00\x00\x00\x00\x00\x00\x16\x70\x65\x72\x6d\x69\x74\x2d\x70\x6f\x72\x74\x2d\x66\x6f\x72\x77\x61\x72\x64\x69\x6e\x67\x00\x00\x00\x00\x00\x00\x00\x0a\x70\x65\x72\x6d\x69\x74\x2d\x70\x74\x79\x00\x00\x00\x00\x00\x00\x00\x0e\x70\x65\x72\x6d\x69\x74\x2d\x75\x73\x65\x72\x2d\x72\x63\x00\x00\x00\x00'  # noqa TODO(adma): FIXME
+    #parse options provided
+    if options is not None:
+        for opt in options:
+            name, _, data = opt.partition('=')
+
+            #If option is clear, clear both Critical Options and Extensions
+            if name.lower() == 'clear':
+                CRITICAL_OPTIONS_DICT.clear()
+                EXTENSIONS_DICT.clear()
+
+            elif name.lower().startswith('no-'):
+                CRITICAL_OPTIONS_DICT = {k:v for k,v in CRITICAL_OPTIONS_DICT.items() if name[3:] not in k}
+                EXTENSIONS_DICT = {k:v for k,v in EXTENSIONS_DICT.items() if name[3:] not in k}
+            else:
+                data = data if data != '' else None
+                
+                #Critical Options
+                if ((name == 'force-command') or (name == 'source-address')) and (data is not None):
+                    CRITICAL_OPTIONS_DICT[name] = data
+                #Other Extensions
+                else:
+                    EXTENSIONS_DICT[name] = data
+
+    CRITICAL_OPTIONS = b''
+    EXTENSIONS = b''
+
+    for key in sorted(CRITICAL_OPTIONS_DICT):
+        value = ('' if CRITICAL_OPTIONS_DICT[key] is None else CRITICAL_OPTIONS_DICT[key])
+        
+        CRITICAL_OPTIONS += (
+            struct.pack('!I',len(key)) + key.encode('utf8') +
+            ( struct.pack('!I',(struct.calcsize('!I')+len(value))) if len(value) > 0 else b'') + 
+            struct.pack('!I',len(value)) + value.encode('utf8')
+        )
+
+    for key in sorted(EXTENSIONS_DICT):
+        value = ('' if EXTENSIONS_DICT[key] is None else EXTENSIONS_DICT[key])
+
+        EXTENSIONS += (
+            struct.pack('!I',len(key)) + key.encode('utf8') + 
+            ( struct.pack('!I',(struct.calcsize('!I')+len(value))) if len(value) > 0 else b'') + 
+            struct.pack('!I',len(value)) + value.encode('utf8')
+        )
+    
+    req += struct.pack('!I',len(CRITICAL_OPTIONS)) + CRITICAL_OPTIONS
+
     req += struct.pack('!I', len(EXTENSIONS)) + EXTENSIONS
 
     req += struct.pack('!I', 0)  # NOTE(adma): RFU
