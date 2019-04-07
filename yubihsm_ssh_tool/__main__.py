@@ -91,11 +91,11 @@ def req(args):
             backend=default_backend()
         )
 
-    with open(args.public_key, 'rb') as user_public_key_file:
-        user_public_key = serialization.load_ssh_public_key(
-            user_public_key_file.read(),
-            backend=default_backend()
-        )
+    with open(args.public_key, 'r') as user_public_key_file:
+        user_public_key_file_contents = user_public_key_file.read().split(' ')
+
+    user_public_key_type = user_public_key_file_contents[0]
+    user_public_key = user_public_key_file_contents[1]
 
     with open(args.ca, 'rb') as ca_public_key_file:
         ca_public_key = serialization.load_pem_public_key(
@@ -107,6 +107,7 @@ def req(args):
 
     req = create_request(
         ca_public_key,
+        user_public_key_type,
         user_public_key,
         args.identity,
         args.principals,

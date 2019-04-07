@@ -2,31 +2,28 @@ from __future__ import absolute_import, division
 
 import os
 import struct
+import base64
 from cryptography.utils import int_to_bytes
 
-CERT_NAME = b'ssh-rsa-cert-v01@openssh.com'
 CERT_TYPE = 1  # 1 = user, 2 = host
 CA_KEY_TYPE = b'ssh-rsa'
 
 
-def create_request(ca_public_key, user_public_key, key_id, principals, options,
-                   not_before, not_after, serial):
+
+def create_request(ca_public_key, user_public_key_type, user_public_key, key_id,
+                   principals, options, not_before, not_after, serial):
+
+    cert_name = (user_public_key_type + '-cert-v01@openssh.com').encode('utf8')
     req = b''
 
-    req += struct.pack('!I', len(CERT_NAME)) + CERT_NAME
+    req += struct.pack('!I', len(cert_name)) + cert_name
 
     nonce = os.urandom(32)
     req += struct.pack('!I', len(nonce)) + nonce
 
-    numbers = user_public_key.public_numbers()
-    pubkey_e = int_to_bytes(numbers.e)
-    pubkey_n = int_to_bytes(numbers.n)
-    if pubkey_n[0] >= 0x80:
-        pubkey_n = b'\x00' + pubkey_n
-
-    req += struct.pack('!I', len(pubkey_e)) + pubkey_e
-
-    req += struct.pack('!I', len(pubkey_n)) + pubkey_n
+    user_public_key_decoded = base64.b64decode(user_public_key)
+    bytes_to_skip = struct.calcsize('!I') + (struct.unpack_from('!I',user_public_key_decoded)[0])
+    req += (user_public_key_decoded[bytes_to_skip:])
 
     req += struct.pack('!Q', serial)
 
