@@ -23,6 +23,7 @@ from binascii import b2a_hex
 import re
 import sys
 import struct
+import base64
 import argparse
 
 from .request import create_request
@@ -43,7 +44,7 @@ def build_parser():
     parser_req.set_defaults(func=req)
 
     parser_req.add_argument('-s', '--ca', required=True,
-                            help='CA PUBLIC key file, in PEM format.')
+                            help='CA PUBLIC key file, in OpenSSH format.')
     parser_req.add_argument('-t', '--timestamp', required=True,
                             help='Timestamp PRIVATE key file, in PEM format.')
     parser_req.add_argument('-I', '--identity', required=True,
@@ -97,11 +98,8 @@ def req(args):
     user_public_key_type = user_public_key_file_contents[0]
     user_public_key = user_public_key_file_contents[1]
 
-    with open(args.ca, 'rb') as ca_public_key_file:
-        ca_public_key = serialization.load_pem_public_key(
-            ca_public_key_file.read(),
-            backend=default_backend()
-        )
+    with open(args.ca, 'r') as ca_public_key_file:
+        ca_public_key = base64.b64decode((ca_public_key_file.read().split(' ')[1]))
 
     now, not_after, not_before = parse_validity(args.validity)
 

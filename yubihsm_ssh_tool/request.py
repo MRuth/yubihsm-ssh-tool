@@ -56,19 +56,6 @@ def create_request(ca_public_key, user_public_key_type, user_public_key, key_id,
 
     req += struct.pack('!I', 0)  # NOTE(adma): RFU
 
-    numbers = ca_public_key.public_numbers()
-    pubkey_e = int_to_bytes(numbers.e)
-    pubkey_n = int_to_bytes(numbers.n)
-    if pubkey_n[0] >= 0x80:
-        pubkey_n = b'\x00' + pubkey_n
-
-    req += struct.pack(
-        '!I',
-        4 + len(CA_KEY_TYPE) + 4 + len(pubkey_e) + 4 + len(pubkey_n)
-    )
-
-    req += struct.pack('!I', len(CA_KEY_TYPE)) + CA_KEY_TYPE
-    req += struct.pack('!I', len(pubkey_e)) + pubkey_e
-    req += struct.pack('!I', len(pubkey_n)) + pubkey_n
+    req += struct.pack('!I',len(ca_public_key)) + ca_public_key
 
     return req
