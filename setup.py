@@ -20,7 +20,7 @@ setup(
     url='https://developers.yubico.com/YubiHSM2/',
     author='Yubico',
     packages=['yubihsm_ssh_tool'],
-    install_requires=['cryptography'],
+    install_requires=['cryptography','yubihsm'],
     entry_points={
         'console_scripts': [
             'yubihsm-ssh-tool=yubihsm_ssh_tool.__main__:main'

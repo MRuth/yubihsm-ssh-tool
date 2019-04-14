@@ -120,6 +120,12 @@
             ],
             "version": "==1.11.0"
         },
+        "yubihsm": {
+            "hashes": [
+                "sha256:ba20e4456f7efc0c65e3d3bf1de0fdf719705445e6ef3a872234a7f17b85e1e0"
+            ],
+            "version": "==2.0.0"
+        },
         "yubihsm-ssh-tool": {
             "editable": true,
             "path": "."
